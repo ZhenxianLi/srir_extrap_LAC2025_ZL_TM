@@ -9,6 +9,7 @@ clear all;
 close all;
 
 % Start SOFA and load function library
+
 % get the now path
 parentFolder = fileparts(pwd);
 
@@ -18,6 +19,7 @@ addpath(fullfile(parentFolder, 'Higher-Order-Ambisonics-master'));
 addpath(genpath(fullfile(parentFolder, 'binaural_ambisonic_preprocessing-main')));
 addpath(fullfile(parentFolder, 'audio_samples'));
 SOFAstart;
+
 
 %run this to load decoder
 if ~exist('aio_flag')
@@ -29,6 +31,27 @@ end
 parentFolder = fileparts(pwd);
 irPath1 = fullfile(parentFolder, '6dof_SRIRs_eigenmike_SH/');
 irName1 = '6DoF_SRIRs_eigenmike_SH_50percent_absorbers_enabled.sofa';
+
+
+%download the SRIR.sofa from Github Release
+url = 'https://github.com/ZhenxianLi/ZHENXIAN_SRIRextrapolation/releases/download/6dof_SRIRs_eigenmike_SH/6DoF_SRIRs_eigenmike_SH_50percent_absorbers_enabled.sofa';
+% Construct the full path for the saved file
+outputFile = fullfile(irPath1, irName1);
+% Check if the file already exists to avoid duplicate downloads
+if ~exist(outputFile, 'file')
+    fprintf('start Download the file: %s\n', irName1);
+    try
+        % download to pass
+        websave(outputFile, url);
+        fprintf('downloadSucess: %s\n', outputFile);
+    catch ME
+        fprintf('downloadFail: %s\n', ME.message);
+        return; % 终止执行
+    end
+else
+    fprintf('File already exists, skipping download: %s\n', outputFile);
+end
+
 
 sofa1 = SOFAload([irPath1,irName1]);
 fs = sofa1.Data.SamplingRate;
