@@ -1,21 +1,25 @@
 % adjust from RotateIR.m
 % scale all Early reflect
-% from multupli recording
-%------------------------------------------------------------------------------------------------------------
-
+% from single recording
+%--------------------------------------------------------------------------------------------------------------------------
 %read and plot sofa file
 
 clc;
-%clear all;
+clear all;
 close all;
 
 % Start SOFA and load function library
-addpath('D:\OneDrive - University of Edinburgh\2223_3_FinalProjrct\FP_matlab\API_MO');
-addpath('D:\OneDrive - University of Edinburgh\2223_3_FinalProjrct\FP_matlab\Spherical-Harmonic-Transform-master');
-addpath('D:\OneDrive - University of Edinburgh\2223_3_FinalProjrct\FP_matlab\Higher-Order-Ambisonics-master');
-addpath(genpath('D:\OneDrive - University of Edinburgh\2223_3_FinalProjrct\FP_matlab\binaural_ambisonic_preprocessing-main'));
-addpath('D:\OneDrive - University of Edinburgh\2223_3_FinalProjrct\FP_matlab\audio_samples');
+
+% get the now path
+parentFolder = fileparts(pwd);
+
+addpath(fullfile(parentFolder, 'API_MO'));
+addpath(fullfile(parentFolder, 'Spherical-Harmonic-Transform-master'));
+addpath(fullfile(parentFolder, 'Higher-Order-Ambisonics-master'));
+addpath(genpath(fullfile(parentFolder, 'binaural_ambisonic_preprocessing-main')));
+addpath(fullfile(parentFolder, 'audio_samples'));
 SOFAstart;
+
 
 %run this to load decoder
 if ~exist('aio_flag')
@@ -23,13 +27,35 @@ if ~exist('aio_flag')
 end
 
 % Load Variable Acoustics 6DoF Dataset (most reverberant set)
-irPath1 = 'D:\OneDrive - University of Edinburgh\2223_3_FinalProjrct\FP_matlab\6dof_SRIRs_eigenmike_SH\';
+
+parentFolder = fileparts(pwd);
+irPath1 = fullfile(parentFolder, '6dof_SRIRs_eigenmike_SH/');
 irName1 = '6DoF_SRIRs_eigenmike_SH_50percent_absorbers_enabled.sofa';
+
+
+%download the SRIR.sofa from Github Release
+url = 'https://github.com/ZhenxianLi/ZHENXIAN_SRIRextrapolation/releases/download/6dof_SRIRs_eigenmike_SH/6DoF_SRIRs_eigenmike_SH_50percent_absorbers_enabled.sofa';
+% Construct the full path for the saved file
+outputFile = fullfile(irPath1, irName1);
+% Check if the file already exists to avoid duplicate downloads
+if ~exist(outputFile, 'file')
+    fprintf('start Download the file: %s\n', irName1);
+    try
+        % download to pass
+        websave(outputFile, url);
+        fprintf('downloadSucess: %s\n', outputFile);
+    catch ME
+        fprintf('downloadFail: %s\n', ME.message);
+        return; % 终止执行
+    end
+else
+    fprintf('File already exists, skipping download: %s\n', outputFile);
+end
+
 
 sofa1 = SOFAload([irPath1,irName1]);
 fs = sofa1.Data.SamplingRate;
 %SOFAplotGeometry(sofa1);   % plot the source and listen position
-
 
 %% check inf
 sofa1.GLOBAL_RoomType;
@@ -39,12 +65,12 @@ sofa1.SourcePosition;
 sofa1.EmitterPosition;
 size(sofa1.Data);
 
-%cheak by hand
+%cheak the first  by hand
 firstReflectionIndex=[487;697;674;528;579;621;606;515;616;726;499;658;861;543;742;939;971;1146;1071;900;1171];
 %% calculate the scale parameter & sound speed
 sizeIR=size(sofa1.Data.IR);
-N=sizeIR(1);
-N=21;
+N=sizeIR(1);    
+N=15;     %only facing=15
 
 IROrder=sizeIR(2);
 L=sizeIR(3);
@@ -70,11 +96,7 @@ if pic1
     for n=1:N
         figure;
         subplot(7,3,n);%3 speaker; 7 mic
-
-
         plot(abs(IR_n));
-
-
         hold on;
         xline(directSoundIndex,'--g');
         xline(firstReflectionIndex(n),'--g');
@@ -85,12 +107,14 @@ if pic1
         title(num2str(n))
 
     end
+
+
     %end for loop
 end
 
 % generate new IR-------------------------------
 %% cut and scale
-% start from nearestPointNum,
+% start from 9, S3L3 ,center of room
 % which postion use to
 
 % generate*************************************************************************************
@@ -99,37 +123,21 @@ useSpeaker=1;%1-3
 useListener=5;%1-7
 
 %*********************************************************************************************
-controlRecordNum=useListener*3-3+useSpeaker;%对照组
+
+controlRecordNum=useListener*3-3+useSpeaker;%target
 directSoundCutLeft=50;
 directSoundCutRight=300;
 earlyRefCutLength=400;
-
-%calculate the facing angle
-%create dataset for angle
-sphList=zeros(N,3);
-direct_cart=zeros(N,3);
-for n=1:N
-    direct_cart(n,:)=sofa1.ListenerPosition(n,:)-sofa1.SourcePosition(n,:);
-    [sphList(n,1),sphList(n,2),sphList(n,3)]=cart2sph(direct_cart(n,1),direct_cart(n,2),direct_cart(n,3));
-end
-
-[~,index]=sort(abs(sphList(:,1)-sphList(controlRecordNum,1)));%find the nearest
-nearestPointNum=index(2);
-Snum=mod(nearestPointNum,3);%get the num
-if Snum==0
-    Snum=3;
-end
-Lnum=floor(nearestPointNum/3)+1;
 %read IR and postion
-IR_original=sofa1.Data.IR(nearestPointNum,:,:);
+IR_original=sofa1.Data.IR(9,:,:);
 
-SourcerPoint_Origin=sofa1.SourcePosition(nearestPointNum,:);
-ListenerPoint_Origin=sofa1.ListenerPosition(nearestPointNum,:);
+SourcerPoint_Origin=sofa1.SourcePosition(9,:);
+ListenerPoint_Origin=sofa1.ListenerPosition(9,:);
 
 SourcerPoint_generate=sofa1.SourcePosition(controlRecordNum,:);
 ListenerPoint_generate=sofa1.ListenerPosition(controlRecordNum,:);% the controlRecordNum recording it target
-arrival_time_original=directSoundTime(nearestPointNum);
-%Am_original=directSoundValure(nearestPointNum);
+arrival_time_original=directSoundTime(9);
+%Am_original=directSoundValure(9);
 % cut
 directSound=IR_original(:,:,arrival_time_original-directSoundCutLeft:arrival_time_original+directSoundCutRight);
 
@@ -151,8 +159,8 @@ bestx = fminsearch(fun,x0);
 pic2=1;
 if pic2
     figure;% check the fit
-    scatter(distance(1:Nface,1),rmsDirectSoundValure);
-    for n=1:Nface
+    scatter(distance,rmsDirectSoundValure);
+    for n=1:N
         text(distance(n),rmsDirectSoundValure(n),num2str(n));
     end
     hold on;
@@ -169,9 +177,7 @@ distance_origianl=sqrt(sum((SourcerPoint_Origin-ListenerPoint_Origin).^2));
 arrival_time_generate=floor(distance_generate/speed);       %  in samples
 Am_generate=bestx(1)*exp(-(bestx(2))*distance_generate);
 Am_original=bestx(1)*exp(-(bestx(2))*distance_origianl);
-
 directSound=directSound*(Am_generate/Am_original); %scale
-%directSound=directSound*(Am_generate); %scale
 
 % re-join
 A=zeros(25,arrival_time_generate-directSoundCutLeft-1);
@@ -238,7 +244,7 @@ if pic3
 
     subplot(3,1,1);
     plot(abs(squeeze(IR_original(:,1,:))));
-    legend(['IR original ',num2str(Snum),num2str(Lnum)]);
+    legend(['IR original ',num2str(3),num2str(3)]);
     xlim([0 8000]);
     ylim([0 0.5]);
 
@@ -267,26 +273,27 @@ if playAllRecord
     end
 end
 
-%render and play IR_original(nearestPointNum) IR_generate IR_record
-% 1.nearestPointNum 2.generete form NN 3.target recoeding
+%render and play IR_original(9) IR_generate IR_record
+% 1.S3L3 2.generete 3.target recoeding
 doBinRenderIR=1;
 if doBinRenderIR
     IR_Record=squeeze(sofa1.Data.IR(controlRecordNum,:,:)) ;
-    IR_original=squeeze(sofa1.Data.IR(nearestPointNum,:,:));
+    IR_original=squeeze(sofa1.Data.IR(9,:,:));
 
     binIR_original=binSound(IR_original,SH_ambisonic_binaural_decoder);
     binIR_generate=binSound(IR_rot,SH_ambisonic_binaural_decoder);
     binIR_record=binSound(IR_Record,SH_ambisonic_binaural_decoder);
     gaptime=zeros(0.3*fs,2);
-    %soundsc([binIR_original;gaptime;binIR_generate;gaptime;binIR_record],Fs);
-    %soundsc([binIR_generate;gaptime;binIR_record],Fs);% only last 2 sound
+    soundsc([binIR_original;gaptime;binIR_generate;gaptime;binIR_record],Fs);
+    soundsc([binIR_generate;gaptime;binIR_record],Fs);% only last 2 sound
+
 end
 
 %play controlRecord then generate IR conv with dry guitar
-% 1.nearestPointNum 2.generete form NN 3.target recoeding
-doBinRenderSONG=1;
+% 1.S3L3 2.generete 3.target recoeding
+doBinRenderSONG=0;
 if doBinRenderSONG
-    song_Dry=audioread('drums_york.wav'  );
+    %song_Dry=audioread('speechdirectsound_48.wav');
     [~,ch]=size(song_Dry);
     if ch==2
         song_Dry=(song_Dry(:,1)+song_Dry(:,2))/2;
@@ -306,14 +313,17 @@ if doBinRenderSONG
     gaptime=zeros(0.5*fs,2);% gap 0.5s*fs
     soundsc([binSong_originalIR;gaptime;binSong_generateIR;gaptime;binSong_recordIR],fs);
 
-    Max=2*max(max(abs([binSong_originalIR;gaptime;binSong_generateIR;gaptime;binSong_recordIR])));
-    audiowrite(['S',num2str(useSpeaker),'L',num2str(useListener),'_nearestFind',num2str(Snum),num2str(Lnum),'.wav'],binSong_originalIR/Max,fs);
-    audiowrite(['S',num2str(useSpeaker),'L',num2str(useListener),'_nearestGenerate','.wav'],binSong_generateIR/Max,fs);
-    audiowrite(['S',num2str(useSpeaker),'L',num2str(useListener),'_Record','.wav'],binSong_recordIR/Max,fs);
+    if ~exist('Max')
+        Max=1;
+    end
+
+
+    audiowrite(['S',num2str(useSpeaker),'L',num2str(useListener),'_Original33','.wav'],binSong_originalIR/Max,fs);
+    audiowrite(['S',num2str(useSpeaker),'L',num2str(useListener),'_Rotate','.wav'],binSong_generateIR/Max,fs);
+    %audiowrite(['S',num2str(useSpeaker),'L',num2str(useListener),'_Record','.wav'],binSong_recordIR/Max,fs);
 
 end
 
-%UseSingleRecordings;%run generate from single
 
 %% declare function
 %Find  direct sound loc and val
@@ -350,3 +360,8 @@ end
 % compare the two binaural decoders by listening to both binaural renders consecutively
 binIR=binaural_ambisonic_render;
 end
+
+
+
+
+
