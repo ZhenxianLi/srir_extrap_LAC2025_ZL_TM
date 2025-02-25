@@ -30,9 +30,9 @@ hold on
 plot(t*1000, db(sum(abs(dirSrir), 2)), 'LineWidth', 2)
 plot(t*1000, db(sum(abs(resSrir), 2)), 'LineWidth', 2)
 xlim([0,100])
-xlabel('$t$ (ms)')
-ylabel('$\| \cdot \|$ (dB)')
-legend('$\mathbf{x}_\mathrm{d}(t)$', '$\mathbf{x}_\mathrm{r}(t)$')
+xlabel('$t$ (ms)', 'Interpreter', 'latex')
+ylabel('$\| \cdot \|$ (dB)', 'Interpreter', 'latex')
+legend({'$\mathbf{x}_\mathrm{d}(t)$', '$\mathbf{x}_\mathrm{r}(t)$'}, 'Interpreter', 'latex')
 grid on
 
 numChannels = size(srir,2);
@@ -48,10 +48,12 @@ for ii = 1:numChannels
         plot(tBlocks*1000, cumsumGSVs(:,ii)*numChannels/ii, 'Color', cumsumGSVsColors(ii,:), 'LineWidth', 1.5)
     end
 end
-hAvgGSVs = plot(tBlocks*1000, avgGsvSum, 'k:');
-hDetectionThresh = plot(tBlocks*1000, detectionThreshold, 'k');
+hAvgGSVs = plot(tBlocks*1000, avgGsvSum, 'k:', 'LineWidth', 1.5);
+hDetectionThresh = plot(tBlocks*1000, detectionThreshold, 'k', 'LineWidth', 1.5);
 grid on
-xlabel('$t$ (ms)')
+xlabel('$t$ (ms)', 'Interpreter', 'latex')
 xlim([0,100])
 ylim([0,10])
-legend([hGSVCumsum, hAvgGSVs, hDetectionThresh], 'cumulative sums of GSVs', 'subspace component threshold', 'detection threshold')
+legend([hGSVCumsum, hAvgGSVs, hDetectionThresh], ...
+    {'cumulative sums of GSVs', 'subspace component threshold', 'detection threshold'}, ...
+    'Interpreter', 'latex')

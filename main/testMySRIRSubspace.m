@@ -1,0 +1,165 @@
+clear all
+close all
+
+
+%subspace Decomposition
+%cut direct sound
+%scale direct sound
+%rotate direct sound
+%rejoin
+
+
+
+
+% from single recording
+%--------------------------------------------------------------------------------------------------------------------------
+%% load and plot sofa file
+
+% 包括对早期反射进行缩放并通过改变直达声到达时间与幅度来模拟在房间内
+% 不同位置处的空间音频响应。
+
+clc;
+clear all;
+close all;
+
+% Start SOFA and load function library
+% 加载SOFA相关API以及其他所需函数库，用于处理高阶Ambisonics和SOFA格式的脉冲响应
+
+% get the parentFolder path
+% 获取当前工作目录所在的父文件夹路径，便于添加需要的依赖路径
+parentFolder = fileparts(pwd);
+
+addpath(fullfile(parentFolder, 'API_MO'));
+addpath(fullfile(parentFolder, 'Spherical-Harmonic-Transform-master'));
+addpath(fullfile(parentFolder, 'Higher-Order-Ambisonics-master'));
+addpath(genpath(fullfile(parentFolder, 'binaural_ambisonic_preprocessing-main')));
+addpath(fullfile(parentFolder, 'audio_samples'));
+addpath(fullfile(parentFolder, 'SRIR-Subspace-Decomposition-master'));
+SOFAstart;
+
+
+%run this to load decoder
+% 如果之前没有加载Ambisonics配置，则运行load_ambisonic_configuration来获得Ambisonics解码器
+if ~exist('aio_flag')
+    load_ambisonic_configuration
+end
+
+% Load Variable Acoustics 6DoF Dataset (most reverberant set)
+% 这里加载六自由度的SRIRs数据（最混响的版本），文件保存在 6dof_SRIRs_eigenmike_SH 文件夹中
+
+parentFolder = fileparts(pwd);
+irPath1 = fullfile(parentFolder, '6dof_SRIRs_eigenmike_SH/');
+irName1 = '6DoF_SRIRs_eigenmike_SH_50percent_absorbers_enabled.sofa';
+
+% download the SRIR.sofa from Github Release
+% 如果本地没有该SOFA文件则从Github下载
+url = 'https://github.com/ZhenxianLi/ZHENXIAN_SRIRextrapolation/releases/download/6dof_SRIRs_eigenmike_SH/6DoF_SRIRs_eigenmike_SH_50percent_absorbers_enabled.sofa';
+% Construct the full path for the saved file
+outputFile = fullfile(irPath1, irName1);
+% Check if the file already exists to avoid duplicate downloads
+if ~exist(outputFile, 'file')
+    fprintf('start Download the file: %s\n', irName1);
+    try
+        % download to pass
+        websave(outputFile, url);
+        fprintf('downloadSucess: %s\n', outputFile);
+    catch ME
+        fprintf('downloadFail: %s\n', ME.message);
+        return; % 终止执行
+    end
+else
+    fprintf('File already exists, skipping download: %s\n', outputFile);
+end
+
+% 使用SOFAAPI加载该SOFA文件
+sofa1 = SOFAload([irPath1,irName1]);
+fs = sofa1.Data.SamplingRate;
+%SOFAplotGeometry(sofa1);   % plot the source and listen position
+
+%% check inf
+% 这里查看SOFA文件中的一些元数据和尺寸信息
+sofa1.GLOBAL_RoomType;
+sofa1.GLOBAL_SOFAConventionsVersion;
+sofa1.ListenerPosition;
+sofa1.SourcePosition;
+sofa1.EmitterPosition;
+size(sofa1.Data);
+
+% cheak the first  by hand
+% 在每一组IR中，手动指定的早期反射到达索引，可以用峰值识别的方法获得这个集合
+firstReflectionIndex=[487;697;674;528;579;621;606;515;616;726;499;658;861;543;742;939;971;1146;1071;900;1171];
+
+%% calculate the sound speed
+% 这里先获取IR的大小信息，然后仅取N=15（仅保留朝向数目为15）
+% IROrder: 高阶Ambisonics阶数相关通道数量
+% L: 单条IR的长度
+sizeIR=size(sofa1.Data.IR);
+N=sizeIR(1);
+N=15;     %only facing=15 只取扬声器正面朝向麦克风的方向的组合 即前15个
+
+IROrder=sizeIR(2); % how many order contain in the SRIR recording
+L=sizeIR(3);        % sample length of the signal 
+
+
+
+IR_original=sofa1.Data.IR(9,:,:);
+
+
+
+%% test the direct and residual subspace decomposition of an SRIR
+
+
+srir_for_decomp = squeeze(IR_original).';
+fs = fs;
+
+% parameters for the subspace decomposition, see the function header of srirSubspaceDecomp for details
+blockLenSmp = 32;
+hopSizeSmp = blockLenSmp / 8;
+kappa = 3;
+numBlocksGsvSumAvg = 32;
+residualEstimateLengthMs = 20;
+decompositionTimeLimitMs = 100;
+numBlocksSmoothThresh = 1;
+
+[dirSrir, resSrir, numDirSubspaceComponents, gsvs, detectionThreshold, gsvSum, avgGsvSum] = ...
+            srirSubspaceDecomp(srir_for_decomp, fs, blockLenSmp, hopSizeSmp, kappa, numBlocksGsvSumAvg, residualEstimateLengthMs, ...
+                               decompositionTimeLimitMs, numBlocksSmoothThresh);
+
+
+%% plot
+srirLen = size(srir_for_decomp,1);
+t = linspace(0, srirLen/fs-1/fs, srirLen).';
+tBlocks = (0:hopSizeSmp:size(gsvs,1)*hopSizeSmp-hopSizeSmp)/fs;
+
+figure
+hold on
+plot(t*1000, (sum(abs(dirSrir), 2)), 'LineWidth', 2)
+plot(t*1000, (sum(abs(resSrir), 2)), 'LineWidth', 2)
+xlim([0,100])
+xlabel('$t$ (ms)', 'Interpreter', 'latex')
+ylabel('$\| \cdot \|$ (dB)', 'Interpreter', 'latex')
+legend({'$\mathbf{x}_\mathrm{d}(t)$', '$\mathbf{x}_\mathrm{r}(t)$'}, 'Interpreter', 'latex')
+grid on
+
+numChannels = size(srir_for_decomp,2);
+cumsumGSVsColors = copper(numChannels);
+cumsumGSVs = cumsum(gsvs,2);
+
+figure
+hold on
+for ii = 1:numChannels
+    if ii == numChannels
+        hGSVCumsum = plot(tBlocks*1000, cumsumGSVs(:,ii), 'Color', cumsumGSVsColors(ii,:), 'LineWidth', 1.5);
+    else
+        plot(tBlocks*1000, cumsumGSVs(:,ii)*numChannels/ii, 'Color', cumsumGSVsColors(ii,:), 'LineWidth', 1.5)
+    end
+end
+hAvgGSVs = plot(tBlocks*1000, avgGsvSum, 'k:', 'LineWidth', 1.5);
+hDetectionThresh = plot(tBlocks*1000, detectionThreshold, 'k', 'LineWidth', 1.5);
+grid on
+xlabel('$t$ (ms)', 'Interpreter', 'latex')
+xlim([0,100])
+ylim([0,10])
+legend([hGSVCumsum, hAvgGSVs, hDetectionThresh], ...
+    {'cumulative sums of GSVs', 'subspace component threshold', 'detection threshold'}, ...
+    'Interpreter', 'latex')

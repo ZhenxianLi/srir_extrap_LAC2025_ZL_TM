@@ -31,7 +31,7 @@ addpath(fullfile(parentFolder, 'Spherical-Harmonic-Transform-master'));
 addpath(fullfile(parentFolder, 'Higher-Order-Ambisonics-master'));
 addpath(genpath(fullfile(parentFolder, 'binaural_ambisonic_preprocessing-main')));
 addpath(fullfile(parentFolder, 'audio_samples'));
-addpath(fullfile(parentFolder, 'SRIR-Subspace-Decomposition'));
+addpath(fullfile(parentFolder, 'SRIR-Subspace-Decomposition-master'));
 SOFAstart;
 
 
@@ -114,7 +114,7 @@ end
 
 % plot all N sound
 % 如果pic1=1，则会可视化所有直达声位置以及早期反射峰值
-pic1=1;
+pic1=0;
 if pic1
     figure;
     for n=1:N
@@ -165,6 +165,7 @@ earlyRefCutLength=400;
 
 IR_original=sofa1.Data.IR(9,:,:);
 
+
 SourcerPoint_Origin=sofa1.SourcePosition(9,:);
 ListenerPoint_Origin=sofa1.ListenerPosition(9,:);
 
@@ -173,13 +174,78 @@ ListenerPoint_generate=sofa1.ListenerPosition(targetRecordIndex,:);% the control
 arrival_time_original=directSoundTime(9);
 % Am_original=directSoundValure(9);
 
-% 将直达声附近部分从IR_original切片下来
-directSound=IR_original(:,:,arrival_time_original-directSoundCutLeft:arrival_time_original+directSoundCutRight);
 
 
+%% decomposition the direct and residual
 
+
+srir_for_decomp = squeeze(IR_original).';
+fs = fs;
+
+% parameters for the subspace decomposition, see the function header of srirSubspaceDecomp for details
+blockLenSmp = 32;
+hopSizeSmp = blockLenSmp / 8;
+kappa = 3;
+numBlocksGsvSumAvg = 32;
+residualEstimateLengthMs = 20;
+decompositionTimeLimitMs = 100;
+numBlocksSmoothThresh = 1;
+
+[dirSrir, resSrir, numDirSubspaceComponents, gsvs, detectionThreshold, gsvSum, avgGsvSum] = ...
+            srirSubspaceDecomp(srir_for_decomp, fs, blockLenSmp, hopSizeSmp, kappa, numBlocksGsvSumAvg, residualEstimateLengthMs, ...
+                               decompositionTimeLimitMs, numBlocksSmoothThresh);
+
+
+%% plot the decomposition result
+plot_decomposition_result=1;
+if plot_decomposition_result
+srirLen = size(srir_for_decomp,1);
+t = linspace(0, srirLen/fs-1/fs, srirLen).';
+tBlocks = (0:hopSizeSmp:size(gsvs,1)*hopSizeSmp-hopSizeSmp)/fs;
+
+figure
+hold on
+plot(t*1000, (sum(abs(dirSrir), 2)), 'LineWidth', 2)
+plot(t*1000, (sum(abs(resSrir), 2)), 'LineWidth', 2)
+
+xlabel('$t$ (smaples)', 'Interpreter', 'latex')
+ylabel('$\| \cdot \|$ (dB)', 'Interpreter', 'latex')
+legend({'$\mathbf{x}_\mathrm{d}(t)$', '$\mathbf{x}_\mathrm{r}(t)$'}, 'Interpreter', 'latex')
+grid on
+
+numChannels = size(srir_for_decomp,2);
+cumsumGSVsColors = copper(numChannels);
+cumsumGSVs = cumsum(gsvs,2);
+
+figure
+hold on
+for ii = 1:numChannels
+    if ii == numChannels
+        hGSVCumsum = plot(tBlocks*1000, cumsumGSVs(:,ii), 'Color', cumsumGSVsColors(ii,:), 'LineWidth', 1.5);
+    else
+        plot(tBlocks*1000, cumsumGSVs(:,ii)*numChannels/ii, 'Color', cumsumGSVsColors(ii,:), 'LineWidth', 1.5)
+    end
+end
+hAvgGSVs = plot(tBlocks*1000, avgGsvSum, 'k:', 'LineWidth', 1.5);
+hDetectionThresh = plot(tBlocks*1000, detectionThreshold, 'k', 'LineWidth', 1.5);
+grid on
+xlabel('$t$ (ms)', 'Interpreter', 'latex')
+xlim([0,100])
+ylim([0,10])
+legend([hGSVCumsum, hAvgGSVs, hDetectionThresh], ...
+    {'cumulative sums of GSVs', 'subspace component threshold', 'detection threshold'}, ...
+    'Interpreter', 'latex')
+end
+
+%倒置矩阵以与原本代码形式保持一致
+dirSrir=dirSrir.';
+resSrir=resSrir.';
 
 %% scale the direct part
+
+% 将直达声附近部分从dirSrir切片下来
+directSound=dirSrir(:,arrival_time_original-directSoundCutLeft:arrival_time_original+directSoundCutRight);
+
 % fit distance - amiptude
 % use rms
 % Nface=15时，计算这15条面向不同方向时的直达声rms值，用于拟合随距离衰减模型
