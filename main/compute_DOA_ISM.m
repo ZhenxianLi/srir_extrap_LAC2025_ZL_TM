@@ -83,30 +83,40 @@ sofa1.EmitterPosition;
 size(sofa1.Data);
 
 
+
 %%
+originRecordIndex=1;
+speedinSec=329;
 
-% 示例：定义房间、声源、麦克风位置，声速 = 343 m/s
-roomSize = [7.87, 5.75, 2.91];       % 房间尺寸 (长, 宽, 高)
-sourcePos = sofa1.SourcePosition(9,:);  % 声源坐标
-micPos    = sofa1.ListenerPosition(9,:);      % 麦克风坐标
-maxRef    = 1;             % 只计算 maxRef 次镜像
-c         = 329;           % 声速
+%% Image Source Method to Get Early Reflection / 使用镜像源法获取早期反射
+% Example: Define room dimensions, source and microphone positions, with speed = speedinSec m/s.
+roomSize = [7.87, 5.75, 2.91];       % Room dimensions (L, W, H) / 房间尺寸 (长, 宽, 高)
+sourcePos = sofa1.SourcePosition(originRecordIndex,:);  % Source position / 声源坐标
+micPos    = sofa1.ListenerPosition(originRecordIndex,:); % Microphone position / 麦克风坐标
+maxRef    = 2;             % Maximum number of reflections to compute / 计算的最大镜像次数
 
-% 调用函数
-T = compute_DOA_ISM_with_plot(roomSize, sourcePos, micPos, maxRef, c,sofa1);
-T
-% 查看输出表格 T
-% 包含 Nx,Ny,Nz, Ximg,Yimg,Zimg, Distance, ArrTime, Theta, Phi
+% Call the function / 调用函数
+T = compute_DOA_ISM_with_plot(roomSize, sourcePos, micPos, maxRef, speedinSec, sofa1); % Image source method and plot
+T.ArrTime
 
 
-figure;
-plot(abs(squeeze(sofa1.Data.IR(9,1,:))))
-hold on
-for k=1:length(T.ArrTime)
-    xline(T.ArrTime(k)*fs, '--', "Nx="+num2str(T.Nx(k))+" Ny="+num2str(T.Ny(k))+" Nz="+num2str(T.Nz(k)));
-end
-xlim([300 1500])
-hold off
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
