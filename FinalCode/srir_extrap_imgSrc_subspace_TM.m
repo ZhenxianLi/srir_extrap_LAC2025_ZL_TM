@@ -137,7 +137,7 @@ ds_duration = 0.004; % 4ms
 ds_start_samp = delay_DS_orig_meas - 0.001*fs;
 ds_end_samp = ds_start_samp + ds_duration*fs;
 
-% intensity vector DoA analysis --- get measured direct sound direction 
+% intensity vector DoA analysis --- get measured direct sound direction
 dir_DS_meas_orig = doa_iv(srir_orig(ds_start_samp:ds_end_samp,:)); % in degs
 
 %% SUBSPACE DECOMPOSITION
@@ -163,7 +163,13 @@ end
 
 % original
 [dist_imgsrc_orig, delay_imgsrc_orig, dir_imgsrc_orig, dist_DS_imgsrc_orig, delay_DS_imgsrc_orig, dir_DS_imgsrc_orig] = imgsrc_calculate(pos_list_orig,pos_src_orig,ord_imgsrc,dim_room,fs);
-% view([0 90])
+view([0 90])
+xlim([-15 15+dim_room(1)])
+ylim([-12 12+dim_room(2)])
+set(gca,'FontSize',12)
+pbaspect([15+dim_room(1)+15 12+dim_room(2)+12 1])
+box on
+if save_figs; exportgraphics(gcf, 'srir_extrap_imgsrc_orig.pdf'); end
 % ylim([0 dim_room(2)])
 % xlim([0 dim_room(1)])
 % pbaspect([dim_room(1) dim_room(2) 1])
@@ -203,20 +209,24 @@ ylabel('Magnitude (dB)')
 xlabel('Time (s)')
 xlim([0 max(plot_time_vector(1:plotcutoff))])
 
-
-
-
 %}
 
 % target
 [dist_imgsrc_tar, delay_imgsrc_tar, dir_imgsrc_tar, dist_DS_imgsrc_tar, delay_DS_imgsrc_tar, dir_DS_imgsrc_tar] = imgsrc_calculate(pos_list_tar,pos_src_tar,ord_imgsrc,dim_room,fs);
-% view([0 90])
+view([0 90])
+xlim([-15 15+dim_room(1)])
+ylim([-12 12+dim_room(2)])
+set(gca,'FontSize',12)
+pbaspect([15+dim_room(1)+15 12+dim_room(2)+12 1])
+box on
+if save_figs; exportgraphics(gcf, 'srir_extrap_imgsrc_tar.pdf'); end
+
 % ylim([0 dim_room(2)])
 % xlim([0 dim_room(1)])
 % pbaspect([dim_room(1) dim_room(2) 1])
 
 % Sort arrivals based on lowest distances (mean of original and target distances)
-% This ensures the first (most important) arrivals are processed first. 
+% This ensures the first (most important) arrivals are processed first.
 [~,idx]=sort(mean([dist_imgsrc_orig; dist_imgsrc_tar]));
 
 % If imgsrc 2nd order, it seems to duplicate the direct sound path. Remove the index of the shortest path to get rid:
@@ -340,7 +350,7 @@ for i= 1:length(delay_imgsrc_orig) % for each image source
 
     % remove arrival
     % Two options here. Remove from the original (unaltered) SRIR, or remove
-    % from the new SRIR. I think from unaltered is best. 
+    % from the new SRIR. I think from unaltered is best.
     % [srir_arrival,srir_arrival_removed] = srir_arrival_remove(srir_arrival_removed,srir_arrival_removed,fs,delay_imgsrc_orig(i)-delay_arrival_initial_samp,arrival_dur_ms);
     [srir_arrival,srir_arrival_removed] = srir_arrival_remove(srir_arrival_removed,srir_unAlt,fs,delay_imgsrc_orig(i)-delay_arrival_initial_samp,arrival_dur_ms);
 
@@ -366,7 +376,7 @@ for i= 1:length(delay_imgsrc_orig) % for each image source
 
     %     figure(5)
     % plot(srir_arrival_removed(1:fs/20,1))
-    % 
+    %
     % figure(11)
     % plot(srir_arrival_rot(:,1))
 end
@@ -388,7 +398,7 @@ srir_arrival_rot = rotateHOA_N3D(srir_arrival,dir_rot(1),dir_rot(2),0); % adhoc
 
 % set to zero anything up to the new direct sound arrival time
 % (important for when the target source is further than the original
-% source!) 
+% source!)
 srir_arrival_removed(1:delay_DS_imgsrc_tar-delay_arrival_initial_samp_DS+1,:) = 0;
 srir_resid(1:delay_DS_imgsrc_tar-delay_arrival_initial_samp_DS+1,:) = 0;
 
@@ -626,18 +636,18 @@ if save_figs; exportgraphics(gcf, 'srir_extrap_TD_comparison_extrap.pdf');end
 %}
 
 %% Binaural render
-    %render and play IR_original(9) IR_generate IR_record
-    % 1.S3L3 2.generete 3.target recoeding
-    % doBinRenderIR=1;
-    % if doBinRenderIR
-        % IR_Record=squeeze(sofa1.Data.IR(idx_LS_srcrec_orig,:,:)) ;
-        % srir_orig=squeeze(sofa1.Data.IR(9,:,:));
-        brir_orig=binSound(srir_orig,SH_ambisonic_binaural_decoder);
-        brir_new=binSound(srir_new,SH_ambisonic_binaural_decoder);
-        brir_tar=binSound(srir_tar,SH_ambisonic_binaural_decoder);
-        % gaptime=zeros(0.3*fs,2);
-        %soundsc([binIR_original;gaptime;binIR_generate;gaptime;binIR_record],Fs);
-        %soundsc([binIR_generate;gaptime;binIR_record],Fs);% only last 2 sound
+%render and play IR_original(9) IR_generate IR_record
+% 1.S3L3 2.generete 3.target recoeding
+% doBinRenderIR=1;
+% if doBinRenderIR
+% IR_Record=squeeze(sofa1.Data.IR(idx_LS_srcrec_orig,:,:)) ;
+% srir_orig=squeeze(sofa1.Data.IR(9,:,:));
+brir_orig=binSound(srir_orig,SH_ambisonic_binaural_decoder);
+brir_new=binSound(srir_new,SH_ambisonic_binaural_decoder);
+brir_tar=binSound(srir_tar,SH_ambisonic_binaural_decoder);
+% gaptime=zeros(0.3*fs,2);
+%soundsc([binIR_original;gaptime;binIR_generate;gaptime;binIR_record],Fs);
+%soundsc([binIR_generate;gaptime;binIR_record],Fs);% only last 2 sound
 
 %% Calculate colouration
 
@@ -738,13 +748,13 @@ aa.Position(1)=0.5;
 % freqplot_smooth(brir_tar(:,1),fs)
 % hold on
 % freqplot_smooth(brir_tar(:,2),fs)
-% 
+%
 % freqplot_smooth(brir_new(:,1),fs)
 % freqplot_smooth(brir_new(:,2),fs)
-% 
+%
 % legend({'Target (left)','Target (right)','Extrapolated (left)','Extrapolated (right)'})
 % pbaspect([3 1 1]);
-% 
+%
 % ylim([0 35])
 % xlim([40 20000])
 
@@ -810,7 +820,7 @@ if save_figs; exportgraphics(gcf, 'srir_extrap_hor_doa.pdf');end
 % pause;
 
 
-%% Plot DoA 2D 
+%% Plot DoA 2D
 %{
 % normalized_doa_est_P = P_pwd./ max(P_pwd,[],1);
 % normalized_doa_est_P_dB = mag2db(normalized_doa_est_P)/2;
@@ -1197,7 +1207,7 @@ function [locD,ValD,pks,lcs]=findDirectSound(ir)
 highPassFilterFreq = 5000;
 fs=48000;
 [~,filtHi,~] = ambisonic_crossover(highPassFilterFreq,fs);
-    ir = filter(filtHi,1,ir); % high pass filter
+ir = filter(filtHi,1,ir); % high pass filter
 ir = circshift(ir,-floor(length(filtHi)/2));
 
 absir=abs(ir);
@@ -1240,7 +1250,7 @@ function [dist_imgsrc, delay_imgsrc, dir_imgsrc, dist_DS_imgsrc, delay_DS_imgsrc
 % c = 329; % Speed of sound (m/s)
 c = 343; % Speed of sound (m/s)
 % c = 363; % Speed of sound (m/s)
-
+%%
 h = figure;
 % figure
 plotRoom(dim_room,coord_rec,coord_src,h)
@@ -1289,30 +1299,53 @@ else
         x -y  z;...
         x  y -z;...
         x  y  z].';
+
     % Increase the range to plot more images
     nVect = -(ord_imgsrc-1):(ord_imgsrc-1);
     lVect = -(ord_imgsrc-1):(ord_imgsrc-1);
     mVect = -(ord_imgsrc-1):(ord_imgsrc-1);
 
     coords_imgsrc_tot=[];
-
+    xyz_diff_lim =  [min(nVect)*2*Lx; min(lVect)*2*Ly; min(mVect)*2*Lz];
     for n = nVect
         for l = lVect
             for m = mVect
                 xyz_diff = [n*2*Lx; l*2*Ly; m*2*Lz];
                 coords_imgsrc = xyz_diff - xyz_src;
+
+                % only want imgsrc up to order specified, not more!
+                delete_imgsrc=[];
+                i2=0;
+                for i1 = 1:size(xyz_src,2)
+                    coord_imgsr = coords_imgsrc(:,i1);
+                    if ~isempty(coord_imgsr(coord_imgsr<xyz_diff_lim))
+                        i2 = i2+1;
+                        delete_imgsrc(i2) = i1;
+                    else
+                    end
+                end
+                coords_imgsrc(:,delete_imgsrc) = [];
+
                 coords_imgsrc_tot = [coords_imgsrc_tot  coords_imgsrc];
-                for kk=1:size(xyz_src,2)
+                for kk=1:size(coords_imgsrc,2)
                     coord_imgsrc=coords_imgsrc(:,kk);
-                    plot3(coord_imgsrc(1),coord_imgsrc(2),coord_imgsrc(3),"g*")
-                    text(coord_imgsrc(1),coord_imgsrc(2),coord_imgsrc(3),[num2str(n),',',num2str(l),',',num2str(m),',',num2str(kk)])
-                    plot3([coord_imgsrc(1);coord_rec(1)],[coord_imgsrc(2);coord_rec(2)],[coord_imgsrc(3);coord_rec(3)])
+                    plot3(coord_imgsrc(1),coord_imgsrc(2),coord_imgsrc(3),"k*")
+                    % text(coord_imgsrc(1),coord_imgsrc(2),coord_imgsrc(3),[num2str(n),',',num2str(l),',',num2str(m),',',num2str(kk)])
+                    plot3([coord_imgsrc(1);coord_rec(1)],[coord_imgsrc(2);coord_rec(2)],[coord_imgsrc(3);coord_rec(3)],'Color',[0.85 0.85 0.85])
                 end
             end
         end
     end
     coords_imgsrc = coords_imgsrc_tot;
 end
+
+plot3(coord_src(1),coord_src(2),coord_src(3),"^",'LineWidth',2,'MarkerEdgeColor',[0.4660 0.6740 0.1880])
+plot3(coord_rec(1),coord_rec(2),coord_rec(3),"o",'LineWidth',2,'MarkerEdgeColor',[0.8500 0.3250 0.0980])
+
+% plotRoom(dim_room,coord_rec,coord_src,h)
+
+view(0,90)
+
 % xlim([-3*Lx,3*Lx]);
 % ylim([-3*Ly,3*Ly]);
 % zlim([-3*Lz,3*Lz]);
