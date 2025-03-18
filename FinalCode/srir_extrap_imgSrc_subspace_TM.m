@@ -5,9 +5,9 @@
 % INSA de Lyon, France and University of Edinburgh, UK
 
 
-% clc;
+ clc;
 clear all;
-% close all;
+ close all;
 
 %% Settings
 
@@ -50,7 +50,7 @@ addpath(fullfile(parentFolder, 'Spherical-Harmonic-Transform-master'));
 addpath(fullfile(parentFolder, 'Higher-Order-Ambisonics-master'));
 addpath(genpath(fullfile(parentFolder, 'binaural_ambisonic_preprocessing-main')));
 addpath(fullfile(parentFolder, 'audio_samples'));
-% SOFAstart;
+ SOFAstart;
 
 load_ambisonic_configuration
 
