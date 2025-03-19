@@ -9,6 +9,53 @@
 clear all;
  close all;
 
+ %% Init
+% Start SOFA and load function library
+% get the new path
+parentFolder = fileparts(pwd);
+
+addpath(fullfile(parentFolder, 'API_MO'));
+addpath(fullfile(parentFolder, 'Spherical-Harmonic-Transform-master'));
+addpath(fullfile(parentFolder, 'Higher-Order-Ambisonics-master'));
+addpath(genpath(fullfile(parentFolder, 'binaural_ambisonic_preprocessing-main')));
+addpath(fullfile(parentFolder, 'audio_samples'));
+ SOFAstart;
+
+% Run to Load Decoder / 加载解码器
+% If Ambisonics configuration is not loaded, run load_ambisonic_configuration to obtain the Ambisonics decoder.
+if ~exist('aio_flag')
+    load_ambisonic_configuration
+end
+
+% Load Variable Acoustics 6DoF Dataset (medium reverberant set)
+parentFolder = fileparts(pwd);
+irPath1 = fullfile(parentFolder, '6dof_SRIRs_eigenmike_SH/');
+irName1 = '6DoF_SRIRs_eigenmike_SH_50percent_absorbers_enabled.sofa';
+
+%download the SRIR.sofa from Github Release
+url = 'https://github.com/ZhenxianLi/ZHENXIAN_SRIRextrapolation/releases/download/6dof_SRIRs_eigenmike_SH/6DoF_SRIRs_eigenmike_SH_50percent_absorbers_enabled.sofa';
+% Construct the full path for the saved file
+outputFile = fullfile(irPath1, irName1);
+% Check if the file already exists to avoid duplicate downloads
+if ~exist(outputFile, 'file')
+    fprintf('start Download the file: %s\n', irName1);
+    try
+        % download to pass
+        websave(outputFile, url);
+        fprintf('downloadSucess: %s\n', outputFile);
+    catch ME
+        fprintf('downloadFail: %s\n', ME.message);
+        return; % 终止执行
+    end
+else
+    fprintf('File already exists, skipping download: %s\n', outputFile);
+end
+
+sofa1 = SOFAload([irPath1,irName1]);
+fs = sofa1.Data.SamplingRate;
+
+
+
 %% Settings
 
 save_figs = true;
@@ -39,48 +86,6 @@ arrival_dur_ms_DS = 4; % how long to extract in ms (could do longer window for D
 % Flags
 flag_render_binaural = false;
 flag_subspace_decomp = true;
-
-%% Init
-% Start SOFA and load function library
-% get the new path
-parentFolder = fileparts(pwd);
-
-addpath(fullfile(parentFolder, 'API_MO'));
-addpath(fullfile(parentFolder, 'Spherical-Harmonic-Transform-master'));
-addpath(fullfile(parentFolder, 'Higher-Order-Ambisonics-master'));
-addpath(genpath(fullfile(parentFolder, 'binaural_ambisonic_preprocessing-main')));
-addpath(fullfile(parentFolder, 'audio_samples'));
- SOFAstart;
-
-load_ambisonic_configuration
-
-% Load Variable Acoustics 6DoF Dataset (medium reverberant set)
-parentFolder = fileparts(pwd);
-irPath1 = fullfile(parentFolder, '6dof_SRIRs_eigenmike_SH/');
-irName1 = '6DoF_SRIRs_eigenmike_SH_50percent_absorbers_enabled.sofa';
-
-%download the SRIR.sofa from Github Release
-url = 'https://github.com/ZhenxianLi/ZHENXIAN_SRIRextrapolation/releases/download/6dof_SRIRs_eigenmike_SH/6DoF_SRIRs_eigenmike_SH_50percent_absorbers_enabled.sofa';
-% Construct the full path for the saved file
-outputFile = fullfile(irPath1, irName1);
-% Check if the file already exists to avoid duplicate downloads
-if ~exist(outputFile, 'file')
-    fprintf('start Download the file: %s\n', irName1);
-    try
-        % download to pass
-        websave(outputFile, url);
-        fprintf('downloadSucess: %s\n', outputFile);
-    catch ME
-        fprintf('downloadFail: %s\n', ME.message);
-        return; % 终止执行
-    end
-else
-    fprintf('File already exists, skipping download: %s\n', outputFile);
-end
-
-sofa1 = SOFAload([irPath1,irName1]);
-fs = sofa1.Data.SamplingRate;
-
 
 
 
@@ -1559,4 +1564,29 @@ for j = 1:length(est_dirs_pwd(:,1))
 end
 doa_est(:,:) = est_dirs_pwd;
 doa_est_P(:) = est_dirs_P;
+end
+
+
+
+function plotRoom(roomDimensions,receiverCoord,sourceCoord,figHandle)
+%the matlab virson form openExample('audio/RoomImpulseWithRayTracingExample')
+% PLOTROOM Helper function to plot 3D room with receiver/transmitter points
+figure(figHandle)
+X = [0;roomDimensions(1);roomDimensions(1);0;0];
+Y = [0;0;roomDimensions(2);roomDimensions(2);0];
+Z = [0;0;0;0;0];
+figure;
+hold on;
+plot3(X,Y,Z,"k",LineWidth=1.5);   
+plot3(X,Y,Z+roomDimensions(3),"k",LineWidth=1.5); 
+set(gca,"View",[-28,35]); 
+for k=1:length(X)-1
+    plot3([X(k);X(k)],[Y(k);Y(k)],[0;roomDimensions(3)],"k",LineWidth=1.5);
+end
+grid on
+xlabel("X (m)")
+ylabel("Y (m)")
+zlabel("Z (m)")
+plot3(sourceCoord(1),sourceCoord(2),sourceCoord(3),"bx",LineWidth=2)
+plot3(receiverCoord(1),receiverCoord(2),receiverCoord(3),"ro",LineWidth=2)
 end
