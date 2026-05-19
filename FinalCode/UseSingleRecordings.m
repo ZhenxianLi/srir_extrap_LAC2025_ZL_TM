@@ -1,23 +1,19 @@
-% adjust from RotateIR.m
-% scale all Early reflect
-% from single recording
-%--------------------------------------------------------------------------------------------------------------------------
-%read and plot sofa file
+% LEGACY / 历史脚本: pre-paper prototype kept for archival reasons only.
+% LEGACY: 论文之前的原型脚本，仅作存档保留。
+% For the paper-reproducible pipeline, use ../run_paper_figures.m.
+% 一键复现论文图片请运行项目根目录下的 run_paper_figures.m。
+%--------------------------------------------------------------------------
+% read and plot sofa file
 
 clc;
 clear all;
 close all;
 
-% Start SOFA and load function library
-
-% get the now path
-parentFolder = fileparts(pwd);
-
-addpath(fullfile(parentFolder, 'API_MO'));
-addpath(fullfile(parentFolder, 'Spherical-Harmonic-Transform-master'));
-addpath(fullfile(parentFolder, 'Higher-Order-Ambisonics-master'));
-addpath(genpath(fullfile(parentFolder, 'binaural_ambisonic_preprocessing-main')));
-addpath(fullfile(parentFolder, 'audio_samples'));
+% --- Dependency paths via setupPaths (replaces old addpath block) ---------
+% --- 依赖路径走 setupPaths（替代旧的 addpath 段）-------------------------
+thisDir = fileparts(mfilename('fullpath'));
+addpath(fullfile(thisDir, '..', 'utils'));
+setupPaths;
 SOFAstart;
 
 

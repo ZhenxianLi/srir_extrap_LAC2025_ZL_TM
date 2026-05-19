@@ -1,6 +1,7 @@
-% adjust from RotateIR.m
-% scale all Early reflect
-% from multupli recording
+% LEGACY / 历史脚本: pre-paper multi-recording prototype kept for archival.
+% LEGACY: 论文之前用多段录音做对比的原型脚本，仅作存档保留。
+% For the paper-reproducible pipeline, use ../run_paper_figures.m.
+% 一键复现论文图片请运行项目根目录下的 run_paper_figures.m。
 %------------------------------------------------------------------------------------------------------------
 
 %read and plot sofa file
@@ -9,12 +10,11 @@ clc;
 %clear all;
 close all;
 
-% Start SOFA and load function library
-addpath('D:\OneDrive - University of Edinburgh\2223_3_FinalProjrct\FP_matlab\API_MO');
-addpath('D:\OneDrive - University of Edinburgh\2223_3_FinalProjrct\FP_matlab\Spherical-Harmonic-Transform-master');
-addpath('D:\OneDrive - University of Edinburgh\2223_3_FinalProjrct\FP_matlab\Higher-Order-Ambisonics-master');
-addpath(genpath('D:\OneDrive - University of Edinburgh\2223_3_FinalProjrct\FP_matlab\binaural_ambisonic_preprocessing-main'));
-addpath('D:\OneDrive - University of Edinburgh\2223_3_FinalProjrct\FP_matlab\audio_samples');
+% --- Dependency paths via setupPaths (replaces old hard-coded D:\ block) --
+% --- 依赖路径走 setupPaths（替代旧的硬编码 D:\ 路径段）------------------
+thisDir = fileparts(mfilename('fullpath'));
+addpath(fullfile(thisDir, '..', 'utils'));
+setupPaths;
 SOFAstart;
 
 %run this to load decoder

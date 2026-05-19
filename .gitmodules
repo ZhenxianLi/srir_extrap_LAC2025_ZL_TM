@@ -1,0 +1,15 @@
+[submodule "external/SOFAtoolbox"]
+	path = external/SOFAtoolbox
+	url = https://github.com/sofacoustics/SOFAtoolbox.git
+[submodule "external/Higher-Order-Ambisonics"]
+	path = external/Higher-Order-Ambisonics
+	url = https://github.com/polarch/Higher-Order-Ambisonics.git
+[submodule "external/Spherical-Harmonic-Transform"]
+	path = external/Spherical-Harmonic-Transform
+	url = https://github.com/polarch/Spherical-Harmonic-Transform.git
+[submodule "external/Spherical-Array-Processing"]
+	path = external/Spherical-Array-Processing
+	url = https://github.com/polarch/Spherical-Array-Processing.git
+[submodule "external/binaural_ambisonic_preprocessing"]
+	path = external/binaural_ambisonic_preprocessing
+	url = https://github.com/thomas-mckenzie/binaural_ambisonic_preprocessing.git
