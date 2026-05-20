@@ -311,11 +311,3 @@ The 6DoF SRIR dataset:
 
 ---
 
-## License / 许可证
-
-Project code by **Zhenxian Li** (and co-authored with Thomas McKenzie for the
-paper), released under the same terms as the upstream toolboxes it builds on.
-See each submodule's own LICENSE for third-party terms.
-
-项目代码作者：**Zhenxian Li**（论文部分与 Thomas McKenzie 合著）。各 submodule
-的第三方代码请遵循其各自的 LICENSE。
